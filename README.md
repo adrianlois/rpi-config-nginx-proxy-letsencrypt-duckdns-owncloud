@@ -40,7 +40,7 @@ echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
 #### Package installation requirements
 ```
-apt update -y && apt install sysstat htop mlocate bat cifs-utils p7zip-full p7zip-rar zip unzip tree fail2ban apache2-utils -y
+apt update -y && apt install -y sysstat htop mlocate bat cifs-utils p7zip-full p7zip-rar zip unzip tree fail2ban apache2-utils
 ```
 
 #### Add aliases to my .bashrc
