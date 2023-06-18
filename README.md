@@ -1,4 +1,4 @@
-## Steps Configuration my Raspberry Pi
+## Configuration steps for my Raspberry Pi
 
 Configuration steps for RaspberryPi and deploy containers Docker: nginx, nginx-proxy, letsencrypt, duckddns and onwcloud
 
@@ -38,9 +38,9 @@ set softwrap
 echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 ```
 
-#### Package installation requirements
+#### Packages installation and requirements
 ```
-apt update -y && apt install -y sysstat htop mlocate bat cifs-utils p7zip-full p7zip-rar zip unzip tree fail2ban apache2-utils
+apt update -y && apt install -y sysstat htop mlocate bat cifs-utils p7zip-full p7zip-rar zip unzip tree fail2ban apache2-utils firefox python3 && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 ```
 
 #### Add aliases to my .bashrc
