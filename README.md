@@ -7,23 +7,23 @@ Configuration steps for RaspberryPi and deploy containers Docker: nginx, nginx-p
 - https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#2-prepare-the-sd-card
 
 #### Add local user
-```
+```bash
 useradd -m -s /bin/bash adrian
 usermod -G sudo adrian
 passwd adrian
 ```
 #### Delete user by default RPI
-```
+```bash
 userdel -f ubuntu
 ```
 #### Change hostname RPI
-```
+```bash
 echo "rpi" > /etc/hostname
 echo "IP rpi" >> /etc/hosts
 ```
 
 #### nano editor config (.nanorc)
-```
+```bash
 set tabsize 4
 set autoindent
 set smooth
@@ -34,23 +34,27 @@ set softwrap
 
 #### Disable grace period sudo
 - /etc/sudoers
-```
+```bash
 echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 ```
 
 #### Packages installation and requirements
-```
-apt update -y && apt install -y sysstat htop mlocate bat cifs-utils p7zip-full p7zip-rar zip unzip tree fail2ban apache2-utils firefox python3 && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
+```bash
+apt update -y && apt install -y sysstat htop mlocate bat cifs-utils \ 
+tmux p7zip-full p7zip-rar zip unzip tree fail2ban \ 
+apache2-utils firefox python3 && \ 
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+python get-pip.py && rm get-pip.py
 ```
 
 #### Add aliases to my .bashrc
-```
+```bash
 echo "alias cat='batcat'" >> $HOME/.bashrc
 ```
 
 #### SSH server config
 - /etc/ssh/sshd_config
-```
+```bash
 PasswordAuthentication yes
 PubkeyAuthentication yes
 AuthorizedKeysFile  .ssh/authorized_keys
@@ -61,19 +65,19 @@ X11Forwarding yes
 AcceptEnv LANG LC_*
 Subsystem sftp  /usr/lib/openssh/sftp-server
 ```
-```
+```bash
 systemctl enable ssh && systemctl restart ssh
 ```
 
 #### SSH permission in directories and configure public key authentication
-```
+```bash
 su - adrian
 mkdir -p -m 700 ~/.ssh
 touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
 (install -m 600 /dev/null ~/.ssh/authorized_keys)
 ```
 > set public key (ssh-rsa ...pubkey... rsa-key-xxxxxxxx)
-```
+```bash
 adrian@rpi:~$ tree -pugah
 ├── [drwx------ adrian   adrian   4.0K]  .ssh
 │   └── [-rw------- adrian   adrian    398]  authorized_keys
@@ -83,7 +87,7 @@ adrian@rpi:~$ tree -pugah
 #### fail2ban config
 
 - /etc/fail2ban/jail.conf
-```
+```bash
 ignoreip = 127.0.0.1/8 ::1 <MY_NETWORK_IP>/<CIDR>
 [sshd]
 port     = ssh
@@ -93,12 +97,12 @@ bantime  = 172800
 findtime = 600
 maxretry = 3
 ```
-```
+```bash
 systemctl enable fail2ban && systemctl restart fail2ban
 ```
 
 #### Create shared and scripts folder
-```
+```bash
 mkdir /mnt/sharedrpi
 ln -s /mnt/sharedrpi /home/adrian/sharedrpi
 
@@ -112,23 +116,23 @@ cp -r docker/nginx/.nginx-error-pages /home/adrian/sharedrpi/
 ```
 
 #### Crontab config
-```
+```bash
 chmod 700 /scripts/sharedrpi.sh
 ```
 - /etc/crontab
-```
+```bash
 # @reboot sleep 30 && /scripts/sharedrpi.sh
 */1 * * * * root /scripts/sharedrpi.sh
 ```
 
 #### htpasswd file for nginx or apache2
-```
+```bash
 htpasswd -c /scripts/docker/nginx/htpasswd USER
 chmod 644 /scripts/docker/nginx/htpasswd
 ```
 
 #### External USB format ext4 and mount for ownCloud
-```
+```bash
 mkdir -m 777 /media/owncloud
 
 fdisk -l
@@ -144,7 +148,7 @@ mount -a
 ### Install Docker & Docker Compose
 - https://docs.docker.com/engine/install/ubuntu/
 - https://docs.docker.com/compose/install/
-```
+```bash
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && sudo python3 get-pip.py
 apt install -y python3-pip libffi-dev
 curl -sSL https://get.docker.com | sh
@@ -152,7 +156,7 @@ pip3 install docker-compose
 ```
 
 #### Running docker without sudo from another user
-```
+```bash
 sudo usermod -aG docker ${USER}
 id -nG
 ```
@@ -161,7 +165,7 @@ id -nG
 
 Start nginx containers after mounting the sharedrpi sharedrpi share (crontab script sharedrpi.sh).
 
-```
+```bash
 sudo systemctl edit docker.service
 
 [Service]
@@ -170,7 +174,7 @@ ExecStartPre=/bin/sleep 90
 
 #### Deploy compatible docker containers for RaspberryPi
 
-```
+```bash
 cd /scripts/docker
 docker-compose up -d
 ```
@@ -195,11 +199,12 @@ docker-compose up -d
 - nginx-proxy (80)
 
 ---
+
 ## Optional configs services
 
 #### Samba config (optional)
 - /etc/samba/smb.conf
-```
+```bash
 [global]
 workgroup = WORKGROUP
 usershare allow guests = yes
@@ -215,20 +220,20 @@ usershare allow guests = yes
 security = SHARE
 ```
 This service will be stopped.
-```
+```bash
 systemctl disable smbd
 systemctl stop smbd
 ```
 
 #### Apache2 config (optional)
-```
+```bash
 apt install -y apache2
 # Update latest version apache2
 apt install --only-upgrade apache2
 ```
 
 Required modules.
-```
+```bash
 apache2 -M
 ls /etc/apache2/mods-available/
 a2enmod auth_basic
@@ -238,7 +243,7 @@ a2enmod authn_core
 a2enmod authz_core
 ```
 - vhost 000-default.conf
-```
+```bash
 DocumentRoot /var/www/sharedrpi
 <Directory "/var/www/sharedrpi">
         AuthType Basic
@@ -248,7 +253,7 @@ DocumentRoot /var/www/sharedrpi
 </Directory>
 ```
 - /etc/apache/apache2.conf
-```
+```bash
 # Hide Apache2 server info from Index Of /
 ServerSignature Off
 ServerTokens Prod
@@ -256,7 +261,7 @@ ServerTokens Prod
 
 #### Proftpd config (optional)
 - /etc/proftpd/proftpd.conf
-```
+```bash
 MaxInstances                    3
 User                            proftpd
 Group                           nogroup
@@ -276,7 +281,7 @@ DenyAll
 ```
 
 #### SFTP config (optional)
-```
+```bash
 mkdir /var/sftpusers
 groupadd sftp_users
 useradd -d /var/sftpusers -G sftp_users sftpuser1
@@ -285,7 +290,7 @@ chmod -R 770 /var/sftpusers/
 ```
 
 - /etc/ssh/sshd_config
-```
+```bash
 #Subsystem sftp /usr/libexec/openssh/sftp-server
 Subsystem sftp internal-sftp
 Match Group sftp_users
