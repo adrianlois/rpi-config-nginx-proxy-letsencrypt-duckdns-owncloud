@@ -40,7 +40,7 @@ echo "Defaults timestamp_timeout=0" >> /etc/sudoers
 
 #### Packages installation and requirements
 ```bash
-apt update -y && apt install -y sysstat htop mlocate bat cifs-utils \ 
+apt update -y && apt install -y sysstat htop ncdu mlocate bat cifs-utils \ 
 tmux p7zip-full p7zip-rar zip unzip tree fail2ban \ 
 apache2-utils firefox python3 && \ 
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
