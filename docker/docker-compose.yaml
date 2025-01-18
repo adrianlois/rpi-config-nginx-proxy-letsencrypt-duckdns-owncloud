@@ -1,14 +1,22 @@
 version: '3'
 
+volumes:
+  mysql:
+    driver: local
+  backup:
+    driver: local
+  redis:
+    driver: local
+
 services:
-  duckdns:
+  duckdns-domain:
     image: linuxserver/duckdns
-    container_name: duckdns
+    container_name: duckdns-domain
     restart: always
     environment:
-      - TZ=Europe/Madrid
-      - SUBDOMAINS=SUBDOMAIN
-      - TOKEN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+      - TZ=${DUCKDNS_TZ}
+      - SUBDOMAINS=${DUCKDNS_SUBDOMAINS}
+      - TOKEN=${DUCKDNS_TOKEN}
       - LOG_FILE=false #optional
 
   nginx-proxy:
@@ -17,26 +25,8 @@ services:
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - certs:/etc/nginx/certs:ro
-      - confd:/etc/nginx/conf.d
-      - vhostd:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-    labels:
-      - com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy
-
-  letsencrypt-nginx-proxy:
-    image: duch/letsencrypt-nginx-proxy-companion:stable
-    container_name: letsencrypt-nginx-proxy
-    restart: always
-    volumes:
-      - certs:/etc/nginx/certs:rw
-      - confd:/etc/nginx/conf.d
-      - vhostd:/etc/nginx/vhost.d
-      - html:/usr/share/nginx/html
-      - /var/run/docker.sock:/var/run/docker.sock:ro
 
   nginx:
     image: nginx
@@ -44,18 +34,73 @@ services:
     restart: always
     expose:
       - "80"
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
     volumes:
       - /home/USER/sharedrpi:/usr/share/nginx/html:ro
       - /scripts/docker/nginx/default:/etc/nginx/sites-enabled/default:ro
       - /scripts/docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /scripts/docker/nginx/htpasswd:/etc/nginx/.htpasswd:ro
-    environment:
-      - VIRTUAL_HOST=DOMAIN.COM
-      - LETSENCRYPT_HOST=DOMAIN.COM
-      - LETSENCRYPT_EMAIL=USER@DOMAIN.COM
 
-volumes:
-  certs:
-  html:
-  vhostd:
-  confd:
+  owncloud:
+    image: owncloud/server:${OWNCLOUD_VERSION}
+    container_name: owncloud
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mariadb
+      - redis
+    environment:
+      - OWNCLOUD_DOMAIN=${OWNCLOUD_DOMAIN}
+      - OWNCLOUD_DB_TYPE=mysql
+      - OWNCLOUD_DB_NAME=owncloud
+      - OWNCLOUD_DB_USERNAME=owncloud
+      - OWNCLOUD_DB_PASSWORD=${OWNCLOUD_DB_PASSWORD}
+      - OWNCLOUD_DB_HOST=mariadb
+      - OWNCLOUD_ADMIN_USERNAME=${OWNCLOUD_ADMIN_USERNAME}
+      - OWNCLOUD_ADMIN_PASSWORD=${OWNCLOUD_ADMIN_PASSWORD}
+      - OWNCLOUD_MYSQL_UTF8MB4=true
+      - OWNCLOUD_REDIS_ENABLED=true
+      - OWNCLOUD_REDIS_HOST=redis
+    volumes:
+      - ${OWNCLOUD_PERSISTENT_VOLUME}:/mnt/data:rw
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mariadb:
+    image: webhippie/mariadb:latest
+    container_name: oc-mariadb
+    restart: always
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_USERNAME=owncloud
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      - MARIADB_DATABASE=owncloud
+      - MARIADB_MAX_ALLOWED_PACKET=128M
+      - MARIADB_INNODB_LOG_FILE_SIZE=64M
+    volumes:
+      - mysql:/var/lib/mysql
+      - backup:/var/lib/backup
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: webhippie/redis:latest
+    container_name: oc-redis
+    restart: always
+    environment:
+      - REDIS_DATABASES=1
+    volumes:
+      - redis:/var/lib/redis
+    healthcheck:
+      test: ["CMD", "/usr/bin/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5

@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  duckdns:
+    image: linuxserver/duckdns
+    container_name: duckdns
+    restart: always
+    environment:
+      - TZ=${DUCKDNS_TZ}
+      - SUBDOMAINS=${DUCKDNS_SUBDOMAINS}
+      - TOKEN=${DUCKDNS_TOKEN}
+      - LOG_FILE=false #optional
+
+  nginx-proxy:
+    image: budry/jwilder-nginx-proxy-arm
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+  
+  nginx:
+    image: nginx
+    container_name: nginx
+    restart: always
+    expose:
+      - "80"
+    volumes:
+      - /home/USER/sharedrpi:/usr/share/nginx/html:ro
+      - /scripts/docker/nginx/default:/etc/nginx/sites-enabled/default:ro
+      - /scripts/docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /scripts/docker/nginx/htpasswd:/etc/nginx/.htpasswd:ro
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
